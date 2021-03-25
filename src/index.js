@@ -77,21 +77,31 @@ module.exports = function () {
             return JSON.parse(this.fs.readFileSync(this.reportUtil.getResultFileName()).toLocaleString());
         },
 
-        writeToReportSomething (data, field) {
+        writeToReportSomething(data, field) {
             let json;
-
-            if (this.fs.existsSync(this.reportUtil.getResultFileName())) json = this.getJsonAsObject();
-            else json = JSON.parse(this.reportUtil.jsonNames.baseJsonContent);
-
+            if (this.fs.existsSync(this.reportUtil.getResultFileName())) json = this.getJsonAsObject();else json = JSON.parse(this.reportUtil.jsonNames.baseJsonContent);
+      
             if (field === this.reportUtil.jsonNames.fixture) {
-                if (!json.fixtures.find(el => el.name === data.name)) json.fixtures.push(data);
+              if (!json.fixtures.find(el => el.name === data.name)){
+                json.fixtures.push(data);
+              }
+            } else if (field === this.reportUtil.jsonNames.test) {
+              let tcNameArray = Object.keys(global.messageObj);
+              tcNameArray.forEach(function(tcName){
+                 if(tcName === data.name){
+                    global.messageObj[tcName].forEach(function(stepMessage){
+                        let stepMsgObj = {};
+                        stepMsgObj.name = stepMessage;
+                        data.steps.push(stepMsgObj);
+                    });
+                 }
+              });
+              json.fixtures.find(fixt => fixt.name === console.currentFixtureName).tests.push(data);
+            } else if (field){
+              json[field] = data;
             }
-            else if (field === this.reportUtil.jsonNames.test)
-                json.fixtures.find(fixt => fixt.name === console.currentFixtureName).tests.push(data);
-            else if (field) 
-                json[field] = data;
-
-            this.writeToJson(json);    
+      
+            this.writeToJson(json);
         },
 
         /**
@@ -135,13 +145,13 @@ module.exports = function () {
             ]);
         },
 
-        addStep (message) {
-            const json = this.getJsonAsObject();
-            const fixtures = json.fixtures;
-            const tests = fixtures.find(fixt => fixt.name === console.currentFixtureName).tests;
-            
-            tests[tests.length - 1].steps.push(this.reportUtil.jsonNames.baseStepContent(message));
-            this.writeToJson(json);    
+        addStep(message, testcaseName) {
+            let testcaseMsg = global.messageObj[testcaseName];
+            if(testcaseMsg === undefined){
+              global.messageObj[testcaseName] = [];
+            }
+            global.messageObj[testcaseName].push(message);
+            console.log(global.messageObj[testcaseName]);
         },
 
         addStepInfo (message) {
@@ -269,18 +279,27 @@ module.exports = function () {
             }
         },
 
-        reportTestStart (name) {
+        // reportTestStart (name) {
+        //     this.testStartTime = new Date().valueOf();
+        //     const time = this.moment(this.testStartTime).format('M/DD/YYYY HH:mm:ss');
+
+        //     this.testsNumber++;
+        //     this.logBorder('Test start');
+        //     console.log(`Test started (${this.testsNumber}/${this.testsCount}): ${console.currentFixtureName} - ${name}`);
+        //     console.log(`Start time: ${time}`);
+        //     this.writeToReportSomething(this.reportUtil.jsonNames.baseTestContent(name, this.testsNumber), this.reportUtil.jsonNames.test);
+        // },
+
+        reportTestDone (name, testRunInfo) {
+
             this.testStartTime = new Date().valueOf();
             const time = this.moment(this.testStartTime).format('M/DD/YYYY HH:mm:ss');
-
             this.testsNumber++;
             this.logBorder('Test start');
             console.log(`Test started (${this.testsNumber}/${this.testsCount}): ${console.currentFixtureName} - ${name}`);
             console.log(`Start time: ${time}`);
             this.writeToReportSomething(this.reportUtil.jsonNames.baseTestContent(name, this.testsNumber), this.reportUtil.jsonNames.test);
-        },
 
-        reportTestDone (name, testRunInfo) {
             const hasErr = !!testRunInfo.errs.length;
             const screenPath = hasErr && testRunInfo.screenshots && testRunInfo.screenshots.length ? testRunInfo.screenshots[testRunInfo.screenshots.length - 1].screenshotPath : null;
             const stackTrace = this.getStackTraceAsStringsArray(testRunInfo.errs);

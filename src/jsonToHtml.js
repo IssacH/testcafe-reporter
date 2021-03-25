@@ -166,9 +166,11 @@ module.exports = {
             stepsString += '<div class="step">';
             if (step.name)
                 stepsString += `<div class="stepName" onclick="stepOnClick(this)">${step.name}</div>`;
+            if(step.actions){
             step.actions.forEach(action => {
                 stepsString += `<div class="subStep">${action}</div>`;
             });
+            }
             stepsString += '</div>';
         });
         return stepsString + '</div>';

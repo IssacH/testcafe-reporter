@@ -11,17 +11,19 @@ const getCurrentDateTime = function (dateSeparator = '/', timeSeparator = ':', d
             + currentdate.getSeconds();
 };
 
-const log = function (message, isStep) {
+const log = function (message, isStep, testcaseName) {
+    if(!testcaseName){
+      return;
+    }
     console.log(`${getCurrentDateTime()} --- ${message}`);
-
-    if (console.isReportUsed) reporter[isStep ? 'addStep' : 'addStepInfo'](message);
+    if (console.isReportUsed) reporter[isStep ? 'addStep' : 'addStepInfo'](message, testcaseName);
 };
 
 module.exports = class Logger {
 
-    static step (stepNum, message) {
+    static step(stepNum, message, testcaseName) {
         stepNum = typeof stepNum === 'number' ? stepNum : `${stepNum[0]}-${stepNum[stepNum.length - 1]}`;
-        log(`Step ${stepNum}: ${message}`, true);
+        log(`Step ${stepNum}: ${message}`, true, testcaseName);
     }
 
     static info (message) {
